@@ -1,137 +1,382 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:zoom/zoom.dart';
+import 'package:flutter_zoom_sdk/zoom_options.dart';
+import 'package:flutter_zoom_sdk/zoom_view.dart';
 
-class JoinWidget extends StatefulWidget {
+class MeetingWidget extends StatefulWidget {
+  const MeetingWidget({Key? key}) : super(key: key);
+
   @override
-  _JoinWidgetState createState() => _JoinWidgetState();
+  _MeetingWidgetState createState() => _MeetingWidgetState();
 }
 
-class _JoinWidgetState extends State<JoinWidget> {
+class _MeetingWidgetState extends State<MeetingWidget> {
   TextEditingController meetingIdController = TextEditingController();
   TextEditingController meetingPasswordController = TextEditingController();
   late Timer timer;
+
   @override
   Widget build(BuildContext context) {
     // new page needs scaffolding!
     return Scaffold(
       appBar: AppBar(
-        title: Text('Join meeting'),
+        title: const Text('Join meeting'),
       ),
-      body: Container(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: 8.0,
-            horizontal: 32.0,
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: TextField(
-                    controller: meetingIdController,
-                    decoration: InputDecoration(
-                      labelText: 'Meeting ID',
-                    )),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: TextField(
-                    controller: meetingPasswordController,
-                    decoration: InputDecoration(
-                      labelText: 'Meeting Password',
-                    )),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Builder(
-                  builder: (context) {
-                    // The basic Material Design action button.
-                    return ElevatedButton(
-                      // If onPressed is null, the button is disabled
-                      // this is my goto temporary callback.
-                      onPressed: () => joinMeeting(context),
-                      child: Text('Join'),
-                    );
-                  },
+      body: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 8.0,
+          horizontal: 32.0,
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: TextField(
+                controller: meetingIdController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Meeting ID',
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Builder(
-                  builder: (context) {
-                    // The basic Material Design action button.
-                    return ElevatedButton(
-                      // If onPressed is null, the button is disabled
-                      // this is my goto temporary callback.
-                      onPressed: () => startMeeting(context),
-                      child: Text('Start Meeting'),
-                    );
-                  },
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: TextField(
+                controller: meetingPasswordController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Password',
                 ),
               ),
-            ],
-          ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Builder(
+                builder: (context) {
+                  // The basic Material Design action button.
+                  return ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.blue, // foreground
+                    ),
+                    onPressed: () => {
+                      {joinMeeting(context)}
+                    },
+                    child: const Text('Join'),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Builder(
+                builder: (context) {
+                  // The basic Material Design action button.
+                  return ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.blue, // foreground
+                    ),
+                    onPressed: () => {
+                      {startMeeting(context)}
+                    },
+                    child: const Text('Start Meeting'),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Builder(
+                builder: (context) {
+                  // The basic Material Design action button.
+                  return ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.blue, // foreground
+                    ),
+                    onPressed: () => startMeetingNormal(context),
+                    child: const Text('Start Meeting With Meeting ID'),
+                  );
+                },
+              ),
+            )
+          ],
         ),
       ),
     );
   }
 
-  bool _isMeetingEnded(String status) {
-    if (Platform.isAndroid)
-      return status == "MEETING_STATUS_DISCONNECTING" ||
-          status == "MEETING_STATUS_FAILED";
-    return status == "MEETING_STATUS_ENDED";
-  }
-
+  //API KEY & SECRET is required for below methods to work
+  //Join Meeting With Meeting ID & Password
   joinMeeting(BuildContext context) {
-    ZoomOptions zoomOptions = new ZoomOptions(
-      domain: "zoom.us",
-      //https://marketplace.zoom.us/docs/sdk/native-sdks/auth
-      //https://jwt.io/
-      //--todo from server
-      jwtToken:
-          "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOm51bGwsImlzcyI6Ii02NWtwVDlCUVJHMzJqZlpENjVfUmciLCJleHAiOjE2NzkxMjg4MDAsImlhdCI6MTY3OTA0MjQwMX0.67O3e0bPw-9n4ufw_sB0HspQSG_ZagZ33l-OTW-Ne3c",
-      appKey:
-          "ISi5wEA9Qg6tfYqEhetwgQ", // Replace with with key got from the Zoom Marketplace ZOOM SDK Section
-      appSecret:
-          "rezmvCHAEZiFJ3bQwhxoZh7oG30CkOsY", // Replace with with secret got from the Zoom Marketplace ZOOM SDK Section
-    );
-    var meetingOptions = new ZoomMeetingOptions(
-        userId: "",
-        meetingId: meetingIdController.text,
-        meetingPassword: meetingPasswordController.text,
-        disableDialIn: "true",
-        disableDrive: "true",
-        disableInvite: "true",
-        disableShare: "true",
-        noAudio: "false",
-        noDisconnectAudio: "false",
-        meetingViewOptions: ZoomMeetingOptions.NO_TEXT_PASSWORD +
-            ZoomMeetingOptions.NO_TEXT_MEETING_ID +
-            ZoomMeetingOptions.NO_BUTTON_PARTICIPANTS);
-    var zoom = Zoom();
-    zoom.init(zoomOptions).then((results) {
-      if (results[0] == 0) {
-        zoom.onMeetingStateChanged.listen((status) {
-          log("Meeting Status Stream: " + status[0] + " - " + status[1]);
-          if (_isMeetingEnded(status[0])) {
-            timer.cancel();
+    bool _isMeetingEnded(String status) {
+      var result = false;
+
+      if (Platform.isAndroid) {
+        result = status == "MEETING_STATUS_DISCONNECTING" ||
+            status == "MEETING_STATUS_FAILED";
+      } else {
+        result = status == "MEETING_STATUS_IDLE";
+      }
+
+      return result;
+    }
+
+    if (meetingIdController.text.isNotEmpty &&
+        meetingPasswordController.text.isNotEmpty) {
+      ZoomOptions zoomOptions = ZoomOptions(
+        domain: "zoom.us",
+        appKey: "XKE4uWfeLwWEmh78YMbC6mqKcF8oM4YHTr9I", //API KEY FROM ZOOM
+        appSecret:
+            "bT7N61pQzaLXU6VLj9TVl7eYuLbqAiB0KAdb", //API SECRET FROM ZOOM
+      );
+      var meetingOptions = ZoomMeetingOptions(
+          userId: 'Joe Cristian Jamis',
+
+          /// pass username for join meeting only --- Any name eg:- EVILRATT.
+          meetingId: meetingIdController.text,
+
+          /// pass meeting id for join meeting only
+          meetingPassword: meetingPasswordController.text,
+
+          /// pass meeting password for join meeting only
+          disableDialIn: "true",
+          disableDrive: "true",
+          disableInvite: "true",
+          disableShare: "true",
+          disableTitlebar: "false",
+          viewOptions: "true",
+          noAudio: "false",
+          noDisconnectAudio: "false");
+
+      var zoom = ZoomView();
+      zoom.initZoom(zoomOptions).then((results) {
+        if (results[0] == 0) {
+          zoom.onMeetingStatus().listen((status) {
+            if (kDebugMode) {
+              print(
+                  "${"[Meeting Status Stream] : " + status[0]} - " + status[1]);
+            }
+            if (_isMeetingEnded(status[0])) {
+              if (kDebugMode) {
+                print("[Meeting Status] :- Ended");
+              }
+              timer.cancel();
+            }
+          });
+          if (kDebugMode) {
+            print("listen on event channel");
           }
-        });
-        zoom.joinMeeting(meetingOptions).then((joinMeetingResult) {
-          timer = Timer.periodic(new Duration(seconds: 2), (timer) {
-            zoom.meetingStatus(meetingOptions.meetingId).then((status) {
-              log("Meeting Status Polling: " + status[0] + " - " + status[1]);
+          zoom.joinMeeting(meetingOptions).then((joinMeetingResult) {
+            timer = Timer.periodic(const Duration(seconds: 2), (timer) {
+              zoom.meetingStatus(meetingOptions.meetingId!).then((status) {
+                if (kDebugMode) {
+                  print("${"[Meeting Status Polling] : " + status[0]} - " +
+                      status[1]);
+                }
+              });
             });
           });
+        }
+      }).catchError((error) {
+        if (kDebugMode) {
+          print("[Error Generated] : " + error);
+        }
+      });
+    } else {
+      if (meetingIdController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Enter a valid meeting id to continue."),
+        ));
+      } else if (meetingPasswordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Enter a meeting password to start."),
+        ));
+      }
+    }
+  }
+
+  //Start Meeting With Random Meeting ID ----- Emila & Password For Zoom is required.
+  startMeeting(BuildContext context) {
+    bool _isMeetingEnded(String status) {
+      var result = false;
+
+      if (Platform.isAndroid) {
+        result = status == "MEETING_STATUS_DISCONNECTING" ||
+            status == "MEETING_STATUS_FAILED";
+      } else {
+        result = status == "MEETING_STATUS_IDLE";
+      }
+
+      return result;
+    }
+
+    ZoomOptions zoomOptions = ZoomOptions(
+      domain: "zoom.us",
+      appKey:
+          "XKE4uWfeLwWEmh78YMbC6mqKcF8oM4YHTr9I", //API KEY FROM ZOOM -- SDK KEY
+      appSecret:
+          "bT7N61pQzaLXU6VLj9TVl7eYuLbqAiB0KAdb", //API SECRET FROM ZOOM -- SDK SECRET
+    );
+    var meetingOptions = ZoomMeetingOptions(
+        userId: 'jamisjoecristian@gmail.com', //pass host email for zoom
+        userPassword: '#0327Joe', //pass host password for zoom
+        disableDialIn: "false",
+        disableDrive: "false",
+        disableInvite: "false",
+        disableShare: "false",
+        disableTitlebar: "false",
+        viewOptions: "true",
+        noAudio: "false",
+        noDisconnectAudio: "false");
+
+    var zoom = ZoomView();
+    zoom.initZoom(zoomOptions).then((results) {
+      if (results[0] == 0) {
+        zoom.onMeetingStatus().listen((status) {
+          if (kDebugMode) {
+            print("${"[Meeting Status Stream] : " + status[0]} - " + status[1]);
+          }
+          if (_isMeetingEnded(status[0])) {
+            if (kDebugMode) {
+              print("[Meeting Status] :- Ended");
+            }
+            timer.cancel();
+          }
+          if (status[0] == "MEETING_STATUS_INMEETING") {
+            zoom.meetinDetails().then((meetingDetailsResult) {
+              if (kDebugMode) {
+                print("[MeetingDetailsResult] :- $meetingDetailsResult");
+              }
+            });
+          }
         });
+        zoom.startMeeting(meetingOptions).then((loginResult) {
+          if (kDebugMode) {
+            print(
+                "${"[LoginResult] :- " + loginResult[0]} - " + loginResult[1]);
+          }
+          if (loginResult[0] == "SDK ERROR") {
+            //SDK INIT FAILED
+            if (kDebugMode) {
+              print((loginResult[1]).toString());
+            }
+            return;
+          } else if (loginResult[0] == "LOGIN ERROR") {
+            //LOGIN FAILED - WITH ERROR CODES
+            if (kDebugMode) {
+              if (loginResult[1] ==
+                  ZoomError.ZOOM_AUTH_ERROR_WRONG_ACCOUNTLOCKED) {
+                print("Multiple Failed Login Attempts");
+              }
+              print((loginResult[1]).toString());
+            }
+            return;
+          } else {
+            //LOGIN SUCCESS & MEETING STARTED - WITH SUCCESS CODE 200
+            if (kDebugMode) {
+              print((loginResult[0]).toString());
+            }
+          }
+        }).catchError((error) {
+          if (kDebugMode) {
+            print("[Error Generated] : " + error);
+          }
+        });
+      }
+    }).catchError((error) {
+      if (kDebugMode) {
+        print("[Error Generated] : " + error);
       }
     });
   }
 
-  startMeeting(BuildContext context) {}
+  //Start Meeting With Custom Meeting ID ----- Emila & Password For Zoom is required.
+  startMeetingNormal(BuildContext context) {
+    bool _isMeetingEnded(String status) {
+      var result = false;
+
+      if (Platform.isAndroid) {
+        result = status == "MEETING_STATUS_DISCONNECTING" ||
+            status == "MEETING_STATUS_FAILED";
+      } else {
+        result = status == "MEETING_STATUS_IDLE";
+      }
+
+      return result;
+    }
+
+    ZoomOptions zoomOptions = ZoomOptions(
+      domain: "zoom.us",
+      appKey:
+          "XKE4uWfeLwWEmh78YMbC6mqKcF8oM4YHTr9I", //API KEY FROM ZOOM -- SDK KEY
+      appSecret:
+          "bT7N61pQzaLXU6VLj9TVl7eYuLbqAiB0KAdb", //API SECRET FROM ZOOM -- SDK SECRET
+    );
+    var meetingOptions = ZoomMeetingOptions(
+        userId: 'jamisjoecristian@gmail.com', //pass host email for zoom
+        userPassword: '#0327Joe', //pass host password for zoom
+        meetingId: meetingIdController.text, //
+        disableDialIn: "false",
+        disableDrive: "false",
+        disableInvite: "false",
+        disableShare: "false",
+        disableTitlebar: "false",
+        viewOptions: "false",
+        noAudio: "false",
+        noDisconnectAudio: "false");
+
+    var zoom = ZoomView();
+    zoom.initZoom(zoomOptions).then((results) {
+      if (results[0] == 0) {
+        zoom.onMeetingStatus().listen((status) {
+          if (kDebugMode) {
+            print("${"[Meeting Status Stream] : " + status[0]} - " + status[1]);
+          }
+          if (_isMeetingEnded(status[0])) {
+            if (kDebugMode) {
+              print("[Meeting Status] :- Ended");
+            }
+            timer.cancel();
+          }
+          if (status[0] == "MEETING_STATUS_INMEETING") {
+            zoom.meetinDetails().then((meetingDetailsResult) {
+              if (kDebugMode) {
+                print("[MeetingDetailsResult] :- $meetingDetailsResult");
+              }
+            });
+          }
+        });
+        zoom.startMeetingNormal(meetingOptions).then((loginResult) {
+          if (kDebugMode) {
+            print("[LoginResult] :- $loginResult");
+          }
+          if (loginResult[0] == "SDK ERROR") {
+            //SDK INIT FAILED
+            if (kDebugMode) {
+              print((loginResult[1]).toString());
+            }
+          } else if (loginResult[0] == "LOGIN ERROR") {
+            //LOGIN FAILED - WITH ERROR CODES
+            if (kDebugMode) {
+              print((loginResult[1]).toString());
+            }
+          } else {
+            //LOGIN SUCCESS & MEETING STARTED - WITH SUCCESS CODE 200
+            if (kDebugMode) {
+              print((loginResult[0]).toString());
+            }
+          }
+        });
+      }
+    }).catchError((error) {
+      if (kDebugMode) {
+        print("[Error Generated] : " + error);
+      }
+    });
+  }
 }

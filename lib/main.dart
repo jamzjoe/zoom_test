@@ -18,7 +18,7 @@ class ExampleApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
-        '/': (context) => JoinWidget(),
+        '/': (context) => const MeetingWidget(),
       },
     );
   }
